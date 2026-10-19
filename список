@@ -1,0 +1,204 @@
+import unittest
+
+
+class Node:
+    """Узел односвязного списка."""
+
+    def __init__(self, value):
+        self.value = value
+        self.next = None
+
+
+class LinkedList:
+    """Односвязный список."""
+
+    def __init__(self):
+        self.head = None
+        self._size = 0
+
+    def append(self, value):
+        """Добавление элемента в конец списка."""
+        new_node = Node(value)
+        if not self.head:
+            self.head = new_node
+        else:
+            current = self.head
+            while current.next:
+                current = current.next
+            current.next = new_node
+        self._size += 1
+
+    def prepend(self, value):
+        """Добавление элемента в начало списка."""
+        new_node = Node(value)
+        new_node.next = self.head
+        self.head = new_node
+        self._size += 1
+
+    def insert_at(self, index, value):
+        """Вставка элемента по указанному индексу."""
+        if index < 0 or index > self._size:
+            raise IndexError("Индекс вне диапазона")
+
+        if index == 0:
+            self.prepend(value)
+            return
+
+        if index == self._size:
+            self.append(value)
+            return
+
+        new_node = Node(value)
+        current = self.head
+        for _ in range(index - 1):
+            current = current.next
+
+        new_node.next = current.next
+        current.next = new_node
+        self._size += 1
+
+    def delete_at(self, index):
+        """Удаление элемента по индексу (возвращает значение удаленного элемента)."""
+        if index < 0 or index >= self._size:
+            raise IndexError("Индекс вне диапазона")
+
+        if index == 0:
+            removed_value = self.head.value
+            self.head = self.head.next
+            self._size -= 1
+            return removed_value
+
+        current = self.head
+        for _ in range(index - 1):
+            current = current.next
+
+        removed_value = current.next.value
+        current.next = current.next.next
+        self._size -= 1
+        return removed_value
+
+    def find(self, value):
+        """Поиск элемента по значению. Возвращает индекс или -1, если элемент не найден."""
+        current = self.head
+        index = 0
+        while current:
+            if current.value == value:
+                return index
+            current = current.next
+            index += 1
+        return -1
+
+    def reverse(self):
+        """Разворот списка на месте (in-place)."""
+        prev = None
+        current = self.head
+        while current:
+            next_node = current.next
+            current.next = prev
+            prev = current
+            current = next_node
+        self.head = prev
+
+    def __len__(self):
+        """Возвращает количество элементов в списке."""
+        return self._size
+
+    def __iter__(self):
+        """Итератор для обхода элементов списка."""
+        current = self.head
+        while current:
+            yield current.value
+            current = current.next
+
+    def __str__(self):
+        """Строковое представление списка."""
+        return " -> ".join(map(str, self)) if self.head else "Empty LinkedList"
+
+
+# ==========================================
+# ТЕСТЫ (включая граничные случаи)
+# ==========================================
+
+
+class TestLinkedList(unittest.TestCase):
+
+    def test_empty_list(self):
+        """Тестирование операций на пустом списке."""
+        ll = LinkedList()
+        self.assertEqual(len(ll), 0)
+        self.assertEqual(str(ll), "Empty LinkedList")
+        self.assertEqual(ll.find(10), -1)
+        self.assertEqual(list(ll), [])
+
+        # Разворот пустого списка не должен вызывать ошибку
+        ll.reverse()
+        self.assertEqual(len(ll), 0)
+
+        # Удаление из пустого списка должно вызывать IndexError
+        with self.assertRaises(IndexError):
+            ll.delete_at(0)
+
+        # Вставка по неверному индексу в пустой список
+        with self.assertRaises(IndexError):
+            ll.insert_at(1, 100)
+
+    def test_single_element_list(self):
+        """Тестирование граничного случая со списком из одного элемента."""
+        ll = LinkedList()
+        ll.append(42)
+
+        self.assertEqual(len(ll), 1)
+        self.assertEqual(str(ll), "42")
+        self.assertEqual(ll.find(42), 0)
+        self.assertEqual(ll.find(99), -1)
+        self.assertEqual(list(ll), [42])
+
+        # Разворот списка из одного элемента
+        ll.reverse()
+        self.assertEqual(list(ll), [42])
+
+        # Удаление единственного элемента
+        removed = ll.delete_at(0)
+        self.assertEqual(removed, 42)
+        self.assertEqual(len(ll), 0)
+        self.assertIsNone(ll.head)
+
+    def test_prepend_and_append(self):
+        """Тестирование добавления в начало и конец."""
+        ll = LinkedList()
+        ll.prepend(10)  # Список: 10
+        ll.append(20)  # Список: 10 -> 20
+        ll.prepend(5)  # Список: 5 -> 10 -> 20
+
+        self.assertEqual(len(ll), 3)
+        self.assertEqual(list(ll), [5, 10, 20])
+        self.assertEqual(str(ll), "5 -> 10 -> 20")
+
+    def test_insert_at_and_delete_at(self):
+        """Тестирование вставки и удаления по различным индексам."""
+        ll = LinkedList()
+        ll.insert_at(0, 10)  # Вставка в пустой список: [10]
+        ll.insert_at(1, 30)  # Вставка в конец: [10, 30]
+        ll.insert_at(1, 20)  # Вставка в середину: [10, 20, 30]
+        ll.insert_at(0, 5)  # Вставка в начало: [5, 10, 20, 30]
+
+        self.assertEqual(list(ll), [5, 10, 20, 30])
+
+        # Удаление из середины, начала и конца
+        self.assertEqual(ll.delete_at(2), 20)  # Осталось: [5, 10, 30]
+        self.assertEqual(ll.delete_at(0), 5)  # Осталось: [10, 30]
+        self.assertEqual(ll.delete_at(1), 30)  # Осталось: [10]
+        self.assertEqual(list(ll), [10])
+
+    def test_reverse_multiple_elements(self):
+        """Тестирование разворота списка с несколькими элементами."""
+        ll = LinkedList()
+        for i in [1, 2, 3, 4]:
+            ll.append(i)
+
+        ll.reverse()
+        self.assertEqual(list(ll), [4, 3, 2, 1])
+
+
+if __name__ == "__main__":
+    unittest.main()
